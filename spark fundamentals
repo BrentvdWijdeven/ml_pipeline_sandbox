@@ -1,0 +1,95 @@
+
+"""
+- How to properly setup spark environment: nr. of nodes, executors etc. to properly distribute tasks
+(to what extent does spark solve this itself?)
+
+
+ Apache Spark allows developers to run multiple tasks in parallel across hundreds
+ of machines in a cluster or across multiple cores on a desktop.
+ All thanks to the primary interaction point of apache spark RDDs. Under the hood,
+ these RDDs are stored in partitions and operated in parallel.
+
+ Fundamental idea of Spark: RDD --> run tasks parallely on hundreds of computers (nodes) in a cluster.
+ Key concept: PARTITIONING
+ Spark automatically partitions RDDs and distributes across different nodes.
+ Partitions do NOT span multiple nodes
+ Nodes take partitions that are most close to them --> reduce network traffic
+
+ Challenge is: The number of partitions in spark are configurable and having too few or too many partitions is not good.
+In apache spark, by default a partition is created for every HDFS partition of size 64MB.
+Possible tweeks:
+ Size of partitions
+ Number of partitions
+Info:
+    Number of hardware slots
+    Nr of tasks by each executor
+
+When the number of partitions is between 100 and 10K partitions based on the size of the cluster and data, the lower and upper bound should be determined.
+    The lower bound for spark partitions is determined by 2 X number of cores in the cluster available to application.
+    Determining the upper bound for partitions in Spark, the task should take 100+ ms time to execute. If it takes less time, then the partitioned data might be too small or the application might be spending extra time in scheduling tasks.
+
+Best practice:
+PartitionBy function.
+E.g. take a soccer dataset. Apply PartitionBy to one colum and create a partition per team.
+Then each team can be processed on a different node.
+
+NATIVE SPARK
+Use this as long as the Spark libraries offer you the desired functionality.
+MLlib algorithms, default python, spark features
+
+THREAD POOLS
+Using multiprocessing library.
+Create concurrent threads of execution instead of a default (without spark) single driver node
+This approach works by using the map function on a pool of threads.
+
+Make sure to still use spark dataframes such that workload can be distributed
+
+
+PANDAS UDF
+Partition spark dataframe into smaller datasets that are distributed and converted to Pandas objects,
+function is then applied, and results ultimately combined back into one large spark data frame.
+
+ALLOWS YOU TO WORK WITH BASE PYTHON LIBRARIES (SUCH AS PANDAS)
+
+
+
+
+
+
+"""
+
+"""
+- RDD vs dataframe vs dataset
+RDD is the fundamental data structure of Spark. Read-only partition of records.
+Allows for in-memory computations on large clusters (fault-tolerant manner). --> speed up task.
+"Each and every dataset in Spark RDD is logically partitioned across many servers so that
+they can be computed on different nodes of the cluster."
+In-memory: Spark RDDs have a provision of in-memory computation. It stores intermediate results in distributed memory(RAM) instead of stable storage(disk).
+https://data-flair.training/blogs/spark-rdd-tutorial/
+
+Dataframe
+Immutable distributed collection of data. Imposes a structure onto that collection, allowing for a higher-level abstraction
+= relational table with good optimization technique.
+Has a schema: structure of data.
+Overcomes some limitations of RDD:
+Basically has all features of RDD but adds:
+memory management: ..
+Optimized execution plan: query optimizer
+Structured data handling (adds named columns)
+
+Dataset
+Extension of dataframes api which provides type-safe, object-oriented programming interface.
+
+https://data-flair.training/blogs/apache-spark-rdd-vs-dataframe-vs-dataset/#:~:text=Spark%20RDD%20APIs%20%E2%80%93%20An%20RDD,only%20partition%20collection%20of%20records.&text=It%20is%20an%20immutable%20distributed,%2C%20allowing%20higher%2Dlevel%20abstraction.
+
+"""
+
+"""
+sc.parallelize()
+We passed numSlices value to 4 which is the number of partitions our data would parallelize into.
+"""
+
+
+
+Spark SQL
+# https://s3.amazonaws.com/assets.datacamp.com/blog_assets/PySpark_SQL_Cheat_Sheet_Python.pdf
