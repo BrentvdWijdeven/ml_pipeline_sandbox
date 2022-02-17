@@ -1,0 +1,1 @@
+{"class":"org.apache.spark.ml.feature.VectorAssembler","timestamp":1644939147359,"sparkVersion":"3.2.1","uid":"VectorAssembler_dba953ff1f82","paramMap":{"inputCols":["Bowler_Index","Over","Batsman_Index"],"outputCol":"features"},"defaultParamMap":{"outputCol":"VectorAssembler_dba953ff1f82__output","handleInvalid":"error"}}

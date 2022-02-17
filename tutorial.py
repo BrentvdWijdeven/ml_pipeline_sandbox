@@ -40,16 +40,13 @@ my_data.printSchema()
 
 # drop the columns that are not required
 my_data = my_data.drop(*['Batsman', 'Bowler', 'Id'])
-print(my_data.columns)
 
 # check type and dimensions of data
-print(type(my_data))
 
 my_data.show()
 
 test_list = [('1', 1), ('2', 2)]
 result = spark.createDataFrame(test_list, ['string', 'value']).collect()
-print(result)
 
 """
 Things to learn:
@@ -62,7 +59,6 @@ Things to learn:
 
 my_data.createOrReplaceTempView("table1")
 sql_table = spark.sql("SELECT * FROM table1")
-sql_table.show()
 
 # sql_table.select("Batsman_Name", F.when(sql_table.Runs >=1, 1).otherwise(0)).show()
 # sql_table.select("Batsman_Name").where(sql_table.Runs == 1).show()
@@ -73,10 +69,8 @@ sql_table.show()
 
 # sql_table.select("Batsman_name",  )
 
-print(type(my_data))
-print(type(sql_table))
-my_data.select("Isball", 'Isboundary', 'Runs').describe().show()
-my_data.groupBy('Batsman_Name').count().show()
+# my_data.select("Isball", 'Isboundary', 'Runs').describe().show()
+# my_data.groupBy('Batsman_Name').count().show()
 
 
 # encoding categorical variables
@@ -106,10 +100,9 @@ assembler = VectorAssembler(inputCols=[
 
 # fill the null values
 test = test.na.fill(0)
-test.show()
+
 # transform the data
 final_data = assembler.transform(test)
-print(final_data.columns)
 
 # view the transformed vector
 final_data.select('Batsman_Index', 'vector').show()
@@ -127,9 +120,11 @@ Each stage in a pipeline is either a Transformer or an Estimator
 Transformer: convert one dataframe into another by applying a transformation to some function
 Estimator: implements the fit() method on the dataframe and produces a model.
 """
-from pyspark.ml import Pipeline
+from pyspark.ml import Pipeline, PipelineModel
 from pyspark.ml.classification import LogisticRegression
 
+
+""" DEZE PREDICTION SLAAT NERGENS OP, maar is pure test case"""
 
 df = my_data.select("*")
 df = df.na.fill(0)
@@ -156,11 +151,60 @@ train_df, test_df = df.randomSplit([0.6, 0.3])
 # Train
 pipeline_model = regression_pipeline.fit(train_df)
 train_result = pipeline_model.transform(train_df)
+
 print('Pipeline runt als een gekkk')
-train_result.show()
 
 # Test
-test_result = pipeline_model.transform(test_df)
-test_result.show()
+test_predictions = pipeline_model.transform(test_df)
+test_predictions.show()
+
+test_predictions.select('features', 'rawPrediction', 'probability', 'prediction').show()
 
 
+# --------------------------------------------
+# Evaluation
+# --------------------------------------------
+# https://spark.apache.org/docs/latest/mllib-evaluation-metrics.html
+from pyspark.ml.evaluation import MulticlassClassificationEvaluator
+
+
+def evaluate_pipeline(pipeline_predictions, model_pipeline, label_column_name: str):
+
+    # Select (prediction, true label) and compute test error
+    evaluator = MulticlassClassificationEvaluator(
+        labelCol=label_column_name, predictionCol="prediction", metricName="accuracy")
+
+
+    evaluation_result = evaluator.evaluate(pipeline_predictions)
+    print("Test Error = %g " % (1.0 - evaluation_result))
+
+    # treeModel = model_pipeline.stages[2]
+    # summary only
+
+
+    return evaluation_result
+
+
+evaluation_result = evaluate_pipeline(pipeline_predictions=test_predictions, model_pipeline=pipeline_model,
+                                      label_column_name="Runs")
+print(evaluation_result)
+# SAVE ML MODEL
+
+import time
+time.sleep(2)
+
+
+"""Ik snap nog niet waarom ik niet Pipeline.load kan gebruiken hier. 
+En zouden de accuracies niet exact hetzelfde moeten zijn als je precies hetzelfde model laadt met dezelfde pipeline?
+het kan zijn dat PipelineModel het model net anders laadt? """
+
+# pipeline_model.save("model/model_pipeline")
+pipelineModel = PipelineModel.load("model/model_pipeline")
+time.sleep(2)
+validation_predictions = pipelineModel.transform(test_df)
+time.sleep(2)
+validation_predictions.show()
+validation_predictions.select('features', 'rawPrediction', 'probability', 'prediction').show()
+
+
+evaluate_pipeline(validation_predictions, pipelineModel, label_column_name="Runs")
